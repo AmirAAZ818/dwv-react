@@ -53,11 +53,13 @@ const styles = theme => ({
   }
 });
 
+//transition
 export const TransitionUp = React.forwardRef((props, ref) => (
   <Slide direction="up" {...props} ref={ref} />
 ))
 
 class DwvComponent extends React.Component {
+
 
   constructor(props) {
     super(props);
@@ -69,7 +71,7 @@ class DwvComponent extends React.Component {
       tools: {
         Scroll: {},
         ZoomAndPan: {},
-        WindowLevel: {},
+        WindowLevel: {}, //  this key is for contrast manipulation
         Draw: {
           options: ['Ruler']
         }
@@ -78,7 +80,7 @@ class DwvComponent extends React.Component {
       loadProgress: 0,
       dataLoaded: false,
       dwvApp: null,
-      metaData: {},
+      metaData: {}, //metaData structure => {tagName: {value: string | number}, ...}
       orientation: undefined,
       showDicomTags: false,
       dropboxDivId: 'dropBox',
@@ -111,6 +113,7 @@ class DwvComponent extends React.Component {
         <LinearProgress variant="determinate" value={loadProgress} />
         <Stack direction="row" spacing={1} padding={1}
           justifyContent="center" flexWrap="wrap">
+
           <ToggleButtonGroup size="small"
             color="primary"
             value={ this.state.selectedTool }
@@ -141,12 +144,13 @@ class DwvComponent extends React.Component {
             onClick={this.handleTagsDialogOpen}
           ><LibraryBooksIcon /></ToggleButton>
 
+          {/*Tags table is a Dialog (which is a component in mui)*/}
           <Dialog
             open={this.state.showDicomTags}
             onClose={this.handleTagsDialogClose}
             TransitionComponent={TransitionUp}
             >
-              <AppBar className={classes.appBar} position="sticky">
+              <AppBar className={classes.appBar} position="sticky"> // this is the header of the dialog
                 <Toolbar>
                   <IconButton color="inherit" onClick={this.handleTagsDialogClose} aria-label="Close">
                     <CloseIcon />
@@ -160,10 +164,12 @@ class DwvComponent extends React.Component {
           </Dialog>
         </Stack>
 
+        {/*DropBox*/}
         <div id="layerGroup0" className="layerGroup">
           <div id="dropBox"></div>
         </div>
 
+        {/*The text at the bottom of the page*/}
         <div><p className="legend">
           <Typography variant="caption">Powered by <Link
               href="https://github.com/ivmartel/dwv"
@@ -180,11 +186,101 @@ class DwvComponent extends React.Component {
       </div>
     );
   }
+  /**In the `componentDidMount` method of the `DwvComponent`, several event listeners are added to handle different stages of loading and interacting with DICOM images. These events help manage the user interface, update the component's state, and handle errors during the image loading process. Here's a detailed explanation of each event and its purpose:
 
+   ### `componentDidMount` Method Events
+
+   1. **Load Events**:
+   - **`loadstart`**:
+   - **Purpose**: Initializes the loading process.
+   - **Actions**:
+   - Resets internal flags (`nLoadItem`, `nReceivedLoadError`, `nReceivedLoadAbort`, `isFirstRender`).
+   - Hides the drop box used for drag-and-drop file loading.
+
+   - **`loadprogress`**:
+   - **Purpose**: Updates the loading progress.
+   - **Actions**: Updates the component's state to reflect the current progress of the loading process (`loadProgress`).
+
+   - **`renderend`**:
+   - **Purpose**: Indicates the end of the rendering process.
+   - **Actions**:
+   - Checks if it's the first render.
+   - Sets the initial tool to `ZoomAndPan` or `Scroll` based on the capabilities of the DWV app.
+
+   - **`load`**:
+   - **Purpose**: Completes the loading process.
+   - **Actions**:
+   - Sets the DICOM metadata in the component's state (`metaData`).
+   - Updates the flag indicating that data has been loaded (`dataLoaded`).
+
+   - **`loadend`**:
+   - **Purpose**: Indicates the end of the entire loading process.
+   - **Actions**:
+   - Checks for errors or aborts during the load.
+   - Resets the load progress and shows alerts if there were errors or if the load was aborted.
+   - Displays the drop box again if no items were loaded.
+
+   - **`loaditem`**:
+   - **Purpose**: Tracks the number of loaded items.
+   - **Actions**: Increments the `nLoadItem` counter.
+
+   - **`loaderror`**:
+   - **Purpose**: Handles errors during the load process.
+   - **Actions**:
+   - Logs the error to the console.
+   - Increments the `nReceivedLoadError` counter.
+
+   - **`loadabort`**:
+   - **Purpose**: Handles the load abort event.
+   - **Actions**: Increments the `nReceivedLoadAbort` counter.
+
+   2. **Keyboard and Resize Events**:
+   - **`keydown`**:
+   - **Purpose**: Handles keydown events.
+   - **Actions**: Calls the default keydown handler of the DWV app (`app.defaultOnKeydown(event)`).
+
+   - **`resize`**:
+   - **Purpose**: Handles window resize events.
+   - **Actions**: Calls the DWV app's resize handler (`app.onResize`) to adjust the viewer size accordingly.
+
+   ### Additional Methods Used in `componentDidMount`
+
+   - **`showDropbox(app, show)`**:
+   - **Purpose**: Shows or hides the dropbox based on the `show` parameter.
+   - **Actions**:
+   - Adds or removes event listeners for drag-and-drop functionality on the dropbox and layer div elements.
+   - Manages the visibility and content of the dropbox.
+
+   ### Summary of Event Flow
+
+   1. **Initialization**:
+   - The `loadstart` event initializes loading flags and hides the drop box.
+
+   2. **Progress Tracking**:
+   - The `loadprogress` event updates the loading progress state.
+
+   3. **Rendering**:
+   - The `renderend` event determines and sets the initial tool after the first render.
+
+   4. **Completion**:
+   - The `load` event updates the metadata and sets the data loaded flag.
+   - The `loadend` event checks for errors or aborts, resets the progress, and may show alerts and the dropbox.
+
+   5. **Error Handling**:
+   - The `loaderror` and `loadabort` events handle and log errors and aborts, updating the respective counters.
+
+   6. **User Interaction**:
+   - The `keydown` event integrates keyboard interactions with the DWV app.
+   - The `resize` event adjusts the viewer size dynamically with window resizing.
+
+   These events ensure a smooth and responsive user experience by handling the various stages of the DICOM image loading and rendering process, updating the UI, and providing feedback in case of errors.
+   */
   componentDidMount() {
-    // create app
+
+    // create app (dwv app (dwv.d.ts))
     const app = new App();
-    // initialise app
+
+    // initialise app ?
     app.init({
       "dataViewConfigs": {'*': [{divId: 'layerGroup0'}]},
       "tools": this.state.tools
@@ -195,6 +291,7 @@ class DwvComponent extends React.Component {
     let nReceivedLoadError = null;
     let nReceivedLoadAbort = null;
     let isFirstRender = null;
+
     app.addEventListener('loadstart', (/*event*/) => {
       // reset flags
       nLoadItem = 0;
@@ -204,9 +301,11 @@ class DwvComponent extends React.Component {
       // hide drop box
       this.showDropbox(app, false);
     });
+
     app.addEventListener("loadprogress", (event) => {
       this.setState({loadProgress: event.loaded});
     });
+
     app.addEventListener('renderend', (/*event*/) => {
       if (isFirstRender) {
         isFirstRender = false;
@@ -250,10 +349,11 @@ class DwvComponent extends React.Component {
       ++nReceivedLoadAbort;
     });
 
-    // handle key events
+    // handle key events ?
     app.addEventListener('keydown', (event) => {
       app.defaultOnKeydown(event);
     });
+
     // handle window resize
     window.addEventListener('resize', app.onResize);
 
@@ -291,7 +391,7 @@ class DwvComponent extends React.Component {
    * Handle a change tool event.
    * @param {string} tool The new tool name.
    */
-  onChangeTool = (tool) => {
+  onChangeTool = (tool) => { // ruler
     if (this.state.dwvApp) {
       this.setState({selectedTool: tool});
       this.state.dwvApp.setTool(tool);
@@ -321,8 +421,9 @@ class DwvComponent extends React.Component {
 
   /**
    * Toogle the viewer orientation.
+   *
    */
-  toggleOrientation = () => {
+  toggleOrientation = () => { // can be removed
     if (typeof this.state.orientation !== 'undefined') {
       if (this.state.orientation === 'axial') {
         this.state.orientation = 'coronal';
@@ -356,7 +457,7 @@ class DwvComponent extends React.Component {
    * Handle a change draw shape event.
    * @param {string} shape The new shape name.
    */
-  onChangeShape = (shape) => {
+  onChangeShape = (shape) => { // ruler
     if (this.state.dwvApp) {
       this.state.dwvApp.setToolFeatures({shapeName: shape});
     }

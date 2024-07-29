@@ -45,6 +45,9 @@ class TagsTable extends React.Component {
     super(props);
 
     const fullMetaData = this.props.data;
+    console.log(fullMetaData);
+    console.log(Object.keys(fullMetaData));
+    // console.log(this.state.displayData);
 
     this.state = {
       fullMetaData: fullMetaData,
@@ -69,8 +72,8 @@ class TagsTable extends React.Component {
       ];
     }
 
-    this.state.displayData = this.getMetaArray(this.state.instanceNumber);
-
+    this.state.displayData = this.getMetaArray(this.state.instanceNumber); // I believe displayData is actually key and value pairs that are the rows of the table
+    console.log(this.state.displayData);
     // bind listener
     this.filterList = this.filterList.bind(this);
   }
