@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 import PropTypes from 'prop-types';
 import { withStyles, useTheme } from '@mui/styles';
 import Typography from '@mui/material/Typography';
@@ -21,6 +21,9 @@ import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import CameraswitchIcon from '@mui/icons-material/Cameraswitch';
 
+import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
+import Divider from "@mui/material/Divider";
+
 import Dialog from '@mui/material/Dialog';
 import AppBar from '@mui/material/AppBar';
 import Slide from '@mui/material/Slide';
@@ -34,6 +37,7 @@ import {
   getDwvVersion,
   decoderScripts
 } from 'dwv';
+import {Draw} from "@mui/icons-material";
 
 // Image decoders (for web workers)
 decoderScripts.jpeg2000 = `${process.env.PUBLIC_URL}/assets/dwv/decoders/pdfjs/decode-jpeg2000.js`;
@@ -73,7 +77,7 @@ class DwvComponent extends React.Component {
         ZoomAndPan: {},
         WindowLevel: {}, //  this key is for contrast manipulation
         Draw: {
-          options: ['Ruler']
+          options: ['Draw_Ruler', 'Draw_Rectangle']
         }
       },
       selectedTool: 'Select Tool',
@@ -95,18 +99,50 @@ class DwvComponent extends React.Component {
     const { versions, tools, loadProgress, dataLoaded, metaData } = this.state;
 
     const handleToolChange = (event, newTool) => {
+      console.log(newTool)
       if (newTool) {
         this.onChangeTool(newTool);
       }
     };
-    const toolsButtons = Object.keys(tools).map( (tool) => {
+
+    // const handleShapeChange = (event , newShape) => {
+    //   if (newShape) {
+    //     this.onChangeShape(newShape);
+    //   }
+    // };
+
+
+    const drawShapeButtons = this.state.tools.Draw.options.map((option) => {
+      // console.log(this.state.tools.Draw.options);
+      // console.log(option);
       return (
-        <ToggleButton value={tool} key={tool} title={tool}
-          disabled={!dataLoaded || !this.canRunTool(tool)}>
-          { this.getToolIcon(tool) }
-        </ToggleButton>
+          <ToggleButton
+              value={option}
+              key={option}
+              title={option}
+              disabled={!dataLoaded}
+          >
+            {this.getToolIcon(option.split("_")[1])}
+          </ToggleButton>
       );
     });
+
+    const toolsButtons = Object.keys(tools).map( (tool) => { // bug : Draw_Ruler is not good, you should not change the name of the options of the draw key, you should handle it another way.
+      if (tool.split("_")[0] !== 'Draw')
+      {
+        return (
+            <ToggleButton value={tool} key={tool} title={tool}
+                          disabled={!dataLoaded || !this.canRunTool(tool)}>
+              {this.getToolIcon(tool)}
+            </ToggleButton>
+        );
+      }
+      else {
+        return drawShapeButtons;
+      }
+    });
+
+
 
     return (
       <div id="dwv">
@@ -381,9 +417,12 @@ class DwvComponent extends React.Component {
       res = (<SearchIcon />);
     } else if (tool === 'WindowLevel') {
       res = (<ContrastIcon />);
-    } else if (tool === 'Draw') {
+    } else if (tool === 'Ruler') {
       res = (<StraightenIcon />);
+    } else if (tool === 'Rectangle') {
+      res = (<RectangleOutlinedIcon/>);
     }
+
     return res;
   }
 
@@ -393,11 +432,24 @@ class DwvComponent extends React.Component {
    */
   onChangeTool = (tool) => { // ruler
     if (this.state.dwvApp) {
-      this.setState({selectedTool: tool});
-      this.state.dwvApp.setTool(tool);
-      if (tool === 'Draw') {
-        this.onChangeShape(this.state.tools.Draw.options[0]);
+      const real_tool = tool.split('_');
+      // console.log(real_tool);
+
+      this.setState({selectedTool: real_tool[0]});
+      console.log(real_tool[0])
+      this.state.dwvApp.setTool(real_tool[0]);
+
+      if (real_tool.length > 1 && real_tool[0] === 'Draw') {
+        console.log(real_tool[1]);
+        this.onChangeShape(real_tool[1]);
       }
+
+      // if (tool === 'Draw') {
+      //   this.onChangeShape(this.state.tools.Draw.options[0]);
+      // }
+      // if (tool === "Bbox") {
+      //   this.onChangeShape(this.state.tools.Draw.options[1]);
+      // }
     }
   }
 
