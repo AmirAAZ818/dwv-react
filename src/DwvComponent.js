@@ -22,6 +22,11 @@ import StraightenIcon from '@mui/icons-material/Straighten';
 import CameraswitchIcon from '@mui/icons-material/Cameraswitch';
 
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
+import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import AdsClickIcon from '@mui/icons-material/AdsClick';
+import ModeEditOutlineIcon from '@mui/icons-material/ModeEditOutline';
+
 import Divider from "@mui/material/Divider";
 
 import Dialog from '@mui/material/Dialog';
@@ -77,7 +82,7 @@ class DwvComponent extends React.Component {
         ZoomAndPan: {},
         WindowLevel: {}, //  this key is for contrast manipulation
         Draw: {
-          options: ['Draw_Ruler', 'Draw_Rectangle']
+          options: ['Ruler', 'Rectangle', 'Ellipse', 'Protractor', 'Roi', 'FreeHand']
         }
       },
       selectedTool: 'Select Tool',
@@ -99,18 +104,13 @@ class DwvComponent extends React.Component {
     const { versions, tools, loadProgress, dataLoaded, metaData } = this.state;
 
     const handleToolChange = (event, newTool) => {
-      console.log(newTool)
       if (newTool) {
         this.onChangeTool(newTool);
       }
+      console.log(JSON.parse(this.state.dwvApp.getJsonState()));
+      // console.log(this.state.dwvApp.getLayerGroupByDivId('1');
+      // console.log(this.state.dwvApp.getNumberOfLayerGroups());
     };
-
-    // const handleShapeChange = (event , newShape) => {
-    //   if (newShape) {
-    //     this.onChangeShape(newShape);
-    //   }
-    // };
-
 
     const drawShapeButtons = this.state.tools.Draw.options.map((option) => {
       // console.log(this.state.tools.Draw.options);
@@ -122,13 +122,13 @@ class DwvComponent extends React.Component {
               title={option}
               disabled={!dataLoaded}
           >
-            {this.getToolIcon(option.split("_")[1])}
+            {this.getToolIcon(option)}
           </ToggleButton>
       );
     });
 
     const toolsButtons = Object.keys(tools).map( (tool) => { // bug : Draw_Ruler is not good, you should not change the name of the options of the draw key, you should handle it another way.
-      if (tool.split("_")[0] !== 'Draw')
+      if (tool !== 'Draw')
       {
         return (
             <ToggleButton value={tool} key={tool} title={tool}
@@ -421,6 +421,14 @@ class DwvComponent extends React.Component {
       res = (<StraightenIcon />);
     } else if (tool === 'Rectangle') {
       res = (<RectangleOutlinedIcon/>);
+    } else if (tool === 'Ellipse') {
+      res = (<PanoramaFishEyeIcon/>);
+    } else if (tool === 'Protractor') {
+      res = (<ChevronRightIcon/>);
+    } else if (tool === 'Roi') {
+      res = (<AdsClickIcon/>);
+    } else if (tool === 'FreeHand') {
+      res = (<ModeEditOutlineIcon/>);
     }
 
     return res;
@@ -432,18 +440,16 @@ class DwvComponent extends React.Component {
    */
   onChangeTool = (tool) => { // ruler
     if (this.state.dwvApp) {
-      const real_tool = tool.split('_');
-      // console.log(real_tool);
 
-      this.setState({selectedTool: real_tool[0]});
-      console.log(real_tool[0])
-      this.state.dwvApp.setTool(real_tool[0]);
-
-      if (real_tool.length > 1 && real_tool[0] === 'Draw') {
-        console.log(real_tool[1]);
-        this.onChangeShape(real_tool[1]);
+      if (this.state.tools.Draw.options.indexOf(tool) === -1) {
+        this.setState({selectedTool: tool});
+        this.state.dwvApp.setTool(tool);
       }
-
+      else {
+        this.setState({selectedTool: 'Draw'});
+        this.state.dwvApp.setTool("Draw");
+        this.onChangeShape(tool);
+      }
       // if (tool === 'Draw') {
       //   this.onChangeShape(this.state.tools.Draw.options[0]);
       // }
