@@ -10,6 +10,13 @@ import Link from '@mui/material/Link';
 import IconButton from '@mui/material/IconButton';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
+import FormControlLabel from "@mui/material/FormControlLabel";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from '@mui/material/Select';
+import MenuItem from "@mui/material/MenuItem"
+
+
 
 // https://mui.com/material-ui/material-icons/
 import CloseIcon from '@mui/icons-material/Close';
@@ -42,7 +49,6 @@ import {
   getDwvVersion,
   decoderScripts
 } from 'dwv';
-import {Draw} from "@mui/icons-material";
 
 // Image decoders (for web workers)
 decoderScripts.jpeg2000 = `${process.env.PUBLIC_URL}/assets/dwv/decoders/pdfjs/decode-jpeg2000.js`;
@@ -95,9 +101,25 @@ class DwvComponent extends React.Component {
       dropboxDivId: 'dropBox',
       dropboxClassName: 'dropBox',
       borderClassName: 'dropBoxBorder',
-      hoverClassName: 'hover'
+      hoverClassName: 'hover',
+      class2Id: {
+        'Left Hand': [],
+        'Right Hand': [],
+        'Left Foot': [],
+        'Right Foot': [],
+        'Injured Left Foot': [],
+        'Injured Right Foot': [],
+        'Finger 1': [],
+        'Finger 2': [],
+        'Finger 3': [],
+        'Finger 4': [],
+        'Finger 5': [],
+        'Palm': []
+      },
+      selectedClass: "",
+      drawings: []
     };
-  }
+  }waw
 
   render() {
     const { classes } = this.props;
@@ -107,9 +129,7 @@ class DwvComponent extends React.Component {
       if (newTool) {
         this.onChangeTool(newTool);
       }
-      console.log(JSON.parse(this.state.dwvApp.getJsonState()));
-      // console.log(this.state.dwvApp.getLayerGroupByDivId('1');
-      // console.log(this.state.dwvApp.getNumberOfLayerGroups());
+      // console.log(JSON.parse(this.state.dwvApp.getJsonState()));
     };
 
     const drawShapeButtons = this.state.tools.Draw.options.map((option) => {
@@ -142,13 +162,36 @@ class DwvComponent extends React.Component {
       }
     });
 
+    const labelMenuItems = Object.keys(this.state.class2Id).map(label => {
+      return(
+        <MenuItem value={label} key={label} >{label}</MenuItem>
+      );
+    });
 
+    const handleClassChange = (event) => {
+      this.setState({selectedClass: event.target.value});
+    };
 
     return (
       <div id="dwv">
         <LinearProgress variant="determinate" value={loadProgress} />
         <Stack direction="row" spacing={1} padding={1}
           justifyContent="center" flexWrap="wrap">
+
+          <FormControl required disabled={!dataLoaded || this.state.selectedTool !== "Draw"} >
+            <InputLabel>Class</InputLabel>
+            <Select
+                id= 'Class-Picker'
+                value={this.state.selectedClass}
+                label= "Class"
+                onChange={handleClassChange}
+                autoWidth
+            >
+              {labelMenuItems}
+            </Select>
+
+
+          </FormControl>
 
           <ToggleButtonGroup size="small"
             color="primary"
@@ -322,6 +365,8 @@ class DwvComponent extends React.Component {
       "tools": this.state.tools
     });
 
+
+
     // load events
     let nLoadItem = null;
     let nReceivedLoadError = null;
@@ -352,6 +397,7 @@ class DwvComponent extends React.Component {
         }
         this.onChangeTool(selectedTool);
       }
+
     });
     app.addEventListener("load", (event) => {
       // set dicom tags
@@ -385,10 +431,16 @@ class DwvComponent extends React.Component {
       ++nReceivedLoadAbort;
     });
 
-    // handle key events ?
+    // handle key events
     app.addEventListener('keydown', (event) => {
       app.defaultOnKeydown(event);
     });
+
+    // handle mouseup event for shape
+    window.addEventListener('mouseup', this.updateDrawings);
+
+    // handle delete event for shape
+    app.addEventListener('keydown',this.updateDrawings);
 
     // handle window resize
     window.addEventListener('resize', app.onResize);
@@ -438,8 +490,10 @@ class DwvComponent extends React.Component {
    * Handle a change tool event.
    * @param {string} tool The new tool name.
    */
-  onChangeTool = (tool) => { // ruler
+  onChangeTool = (tool) => {
     if (this.state.dwvApp) {
+      // console.log(JSON.parse(this.state.dwvApp.getJsonState()));
+      // console.log(this.state.drawings);
 
       if (this.state.tools.Draw.options.indexOf(tool) === -1) {
         this.setState({selectedTool: tool});
@@ -450,12 +504,6 @@ class DwvComponent extends React.Component {
         this.state.dwvApp.setTool("Draw");
         this.onChangeShape(tool);
       }
-      // if (tool === 'Draw') {
-      //   this.onChangeShape(this.state.tools.Draw.options[0]);
-      // }
-      // if (tool === "Bbox") {
-      //   this.onChangeShape(this.state.tools.Draw.options[1]);
-      // }
     }
   }
 
@@ -544,6 +592,121 @@ class DwvComponent extends React.Component {
     this.setState({ showDicomTags: false });
   };
 
+  // ____Labelling____
+  componentDidUpdate(prevProps, prevState, snapshot) {
+    if (this.drawingsExist()) {
+      // console.log(JSON.parse(this.state.dwvApp.getJsonState()));
+      console.log(this.state.class2Id);
+      console.log(this.state.drawings);
+      }
+
+
+      if (prevState.drawings.length < this.state.drawings.length) {
+        let selectedClass = this.state.selectedClass;
+        let newShape = this.state.drawings[this.state.drawings.length - 1];
+        let newShapeId = newShape.attrs.id;
+        let class2Id_prev = this.state.class2Id;
+        class2Id_prev[selectedClass].push(newShapeId);
+        this.setState({class2Id: class2Id_prev});
+      }
+      else if (prevState.drawings.length > this.state.drawings.length) {
+        let differId = this.getDifferId(this.state.drawings, prevState.drawings);
+        console.log(differId);
+        Object.keys(this.state.class2Id).forEach((label) => {
+          let idx = this.state.class2Id[label].indexOf(differId);
+          if (idx !== -1){
+            let newClass2Id = this.state.class2Id;
+            newClass2Id[label].splice(idx, 1);
+            this.setState({class2Id: newClass2Id});
+          }
+        })
+      }
+      console.log(this.state.class2Id);
+      console.log(this.state.drawings);
+    }
+
+  getJSONState = () => {
+    if (this.state.dwvApp !== null) {
+      return JSON.parse(this.state.dwvApp.getJsonState());
+    }
+    return null;
+  };
+
+  /**
+   * This method outputs a list of shape objects
+   */
+  getDrawings = () => {
+    if (this.drawingsExist()) {
+      return this.getJSONState().drawings.children[0].children;
+    }
+    return null;
+  };
+
+  getDifferId = (currentDrawings, prevDrawings) => {
+    let prevIds = new Set(this.getIds(prevDrawings));
+    let currIds = new Set(this.getIds(currentDrawings));
+
+    let deletedId = prevIds.difference(currIds);
+
+    return Array.from(deletedId)[0]
+  };
+
+  /**
+   * This method updates the drawing state.
+   * @param event
+   */
+  updateDrawings = (event) => {
+    // updating the state, when you delete a shape using delete button
+    if (this.state.dwvApp && this.state.selectedTool === "Draw" && event.key === 'Delete') { // problem in updating the drawing state.
+      this.setState({drawings: this.getDrawings()});
+      console.log('delete is pressed');
+    }
+    // updating the state when you add a shape or delete a shape or change a shape
+    else if (this.state.dwvApp && this.state.selectedTool === "Draw") {
+      this.setState({drawings: this.getDrawings()});
+    }
+  };
+
+  /**
+   * This method gives you the shape object (if exists) based on the input shapeId
+   * @param ShapeId
+   * @returns {-1} if it is not found | null if operation is not valid | shape object belonging to the shape-group
+   */
+
+  getShapeAttrs = (shapeId) => {
+    if (this.drawingsExist()){
+      let shapes = this.state.drawings;
+      for (let i = 0; i < shapes.length; i++) {
+        let shape = shapes[i];
+        if (shape.attrs.id === shapeId) {
+          return shape.children[1];
+        }
+      }
+      return -1;
+    }
+    return null
+  };
+
+  /**
+   * This method returns Ids of a drawing object
+   * @param drawings
+   * @returns {any[]}
+   */
+  getIds = (drawings) => {
+    let Ids = new Set();
+    for (let i = 0; i < drawings.length; i++){
+      let drawing = drawings[i];
+      Ids.add(drawing.attrs.id);
+    }
+
+    return Array.from(Ids);
+  };
+
+
+
+  drawingsExist = () => {
+    return this.state.dwvApp !== null && this.state.dwvApp.getActiveLayerGroup() !== undefined && this.getJSONState().drawings.children.length > 0;
+  };
   // drag and drop [begin] -----------------------------------------------------
 
   /**
