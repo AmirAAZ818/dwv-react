@@ -1,6 +1,6 @@
-import React, {useState} from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-import { withStyles, useTheme } from '@mui/styles';
+import {withStyles} from '@mui/styles';
 import Typography from '@mui/material/Typography';
 
 import Stack from '@mui/material/Stack';
@@ -10,12 +10,12 @@ import Link from '@mui/material/Link';
 import IconButton from '@mui/material/IconButton';
 import ToggleButton from '@mui/material/ToggleButton';
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup';
-import FormControlLabel from "@mui/material/FormControlLabel";
 import FormControl from "@mui/material/FormControl";
 import InputLabel from "@mui/material/InputLabel";
 import Select from '@mui/material/Select';
 import MenuItem from "@mui/material/MenuItem"
-
+import ButtonGroup from "@mui/material/ButtonGroup";
+import Button from "@mui/material/Button";
 
 
 // https://mui.com/material-ui/material-icons/
@@ -27,14 +27,14 @@ import SearchIcon from '@mui/icons-material/Search';
 import LibraryBooksIcon from '@mui/icons-material/LibraryBooks';
 import StraightenIcon from '@mui/icons-material/Straighten';
 import CameraswitchIcon from '@mui/icons-material/Cameraswitch';
+import BugReportOutlinedIcon from '@mui/icons-material/BugReportOutlined';
 
 import RectangleOutlinedIcon from '@mui/icons-material/RectangleOutlined';
 import PanoramaFishEyeIcon from '@mui/icons-material/PanoramaFishEye';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AdsClickIcon from '@mui/icons-material/AdsClick';
 import ModeEditOutlineIcon from '@mui/icons-material/ModeEditOutline';
-
-import Divider from "@mui/material/Divider";
+import ArrowDownwardOutlinedIcon from '@mui/icons-material/ArrowDownwardOutlined';
 
 import Dialog from '@mui/material/Dialog';
 import AppBar from '@mui/material/AppBar';
@@ -44,12 +44,9 @@ import Toolbar from '@mui/material/Toolbar';
 import TagsTable from './TagsTable';
 
 import './DwvComponent.css';
-import {
-  App,
-  getDwvVersion,
-  decoderScripts
-} from 'dwv';
+import {App, decoderScripts, getDwvVersion} from 'dwv';
 
+// Konva for making rect when importing labels
 // Image decoders (for web workers)
 decoderScripts.jpeg2000 = `${process.env.PUBLIC_URL}/assets/dwv/decoders/pdfjs/decode-jpeg2000.js`;
 decoderScripts["jpeg-lossless"] = `${process.env.PUBLIC_URL}/assets/dwv/decoders/rii-mango/decode-jpegloss.js`;
@@ -103,18 +100,19 @@ class DwvComponent extends React.Component {
       borderClassName: 'dropBoxBorder',
       hoverClassName: 'hover',
       class2Id: {
-        'Left Hand': [],
-        'Right Hand': [],
-        'Left Foot': [],
-        'Right Foot': [],
-        'Injured Left Foot': [],
-        'Injured Right Foot': [],
+        'Palm': [],
         'Finger 1': [],
         'Finger 2': [],
         'Finger 3': [],
         'Finger 4': [],
         'Finger 5': [],
-        'Palm': []
+
+        'Left Hand': [],
+        'Right Hand': [],
+        'Left Foot': [],
+        'Right Foot': [],
+        'Injured Left Foot': [],
+        'Injured Right Foot': []
       },
       selectedClass: "",
       drawings: []
@@ -130,6 +128,25 @@ class DwvComponent extends React.Component {
         this.onChangeTool(newTool);
       }
       // console.log(JSON.parse(this.state.dwvApp.getJsonState()));
+    };
+
+    const handleImport = (event) => {
+      const file = event.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          const content = e.target.result;
+          console.log(content);
+          this.importAnnot(content);
+        };
+
+        reader.onerror = (e) => {
+          console.error('Error reading file:', e);
+        };
+
+        reader.readAsText(file);
+      }
     };
 
     const drawShapeButtons = this.state.tools.Draw.options.map((option) => {
@@ -174,16 +191,38 @@ class DwvComponent extends React.Component {
 
     return (
       <div id="dwv">
+
         <LinearProgress variant="determinate" value={loadProgress} />
         <Stack direction="row" spacing={1} padding={1}
-          justifyContent="center" flexWrap="wrap">
+               justifyContent="center" flexWrap="wrap">
+          <input
+              type="file"
+              id='importAnnot'
+              accept='.txt'
+              style={{display: "none"}}
+              onChange={handleImport}
+          />
 
-          <FormControl required disabled={!dataLoaded || this.state.selectedTool !== "Draw"} >
+          <ButtonGroup size='small'
+                       variant='outlined'
+                       aria-label="Import Export button group"
+                       disabled={!dataLoaded}
+          >
+            <Button
+                onClick={() => {document.getElementById("importAnnot").click();}}
+
+            >
+              <ArrowDownwardOutlinedIcon/>
+            </Button>
+
+          </ButtonGroup>
+
+          <FormControl required disabled={!dataLoaded || this.state.selectedTool !== "Draw"}>
             <InputLabel>Class</InputLabel>
             <Select
-                id= 'Class-Picker'
+                id='Class-Picker'
                 value={this.state.selectedClass}
-                label= "Class"
+                label="Class"
                 onChange={handleClassChange}
                 autoWidth
             >
@@ -194,52 +233,59 @@ class DwvComponent extends React.Component {
           </FormControl>
 
           <ToggleButtonGroup size="small"
-            color="primary"
-            value={ this.state.selectedTool }
-            exclusive
-            onChange={handleToolChange}
+                             color="primary"
+                             value={this.state.selectedTool}
+                             exclusive
+                             onChange={handleToolChange}
           >
             {toolsButtons}
           </ToggleButtonGroup>
 
           <ToggleButton size="small"
-            value="reset"
-            title="Reset"
-            disabled={!dataLoaded}
-            onChange={this.onReset}
-          ><RefreshIcon /></ToggleButton>
+                        value="Test"
+                        title="Test"
+                        disabled={!dataLoaded}
+                        onChange={this.importAnnot}
+          ><BugReportOutlinedIcon/></ToggleButton>
 
           <ToggleButton size="small"
-            value="toggleOrientation"
-            title="Toggle Orientation"
-            disabled={!dataLoaded}
-            onClick={this.toggleOrientation}
-          ><CameraswitchIcon /></ToggleButton>
+                        value="reset"
+                        title="Reset"
+                        disabled={!dataLoaded}
+                        onChange={this.onReset}
+          ><RefreshIcon/></ToggleButton>
 
           <ToggleButton size="small"
-            value="tags"
-            title="Tags"
-            disabled={!dataLoaded}
-            onClick={this.handleTagsDialogOpen}
-          ><LibraryBooksIcon /></ToggleButton>
+                        value="toggleOrientation"
+                        title="Toggle Orientation"
+                        disabled={!dataLoaded}
+                        onClick={this.toggleOrientation}
+          ><CameraswitchIcon/></ToggleButton>
+
+          <ToggleButton size="small"
+                        value="tags"
+                        title="Tags"
+                        disabled={!dataLoaded}
+                        onClick={this.handleTagsDialogOpen}
+          ><LibraryBooksIcon/></ToggleButton>
 
           {/*Tags table is a Dialog (which is a component in mui)*/}
           <Dialog
-            open={this.state.showDicomTags}
-            onClose={this.handleTagsDialogClose}
-            TransitionComponent={TransitionUp}
-            >
-              <AppBar className={classes.appBar} position="sticky"> // this is the header of the dialog
-                <Toolbar>
-                  <IconButton color="inherit" onClick={this.handleTagsDialogClose} aria-label="Close">
-                    <CloseIcon />
-                  </IconButton>
-                  <Typography variant="h6" color="inherit" className={classes.flex}>
-                    DICOM Tags
-                  </Typography>
-                </Toolbar>
-              </AppBar>
-              <TagsTable data={metaData} />
+              open={this.state.showDicomTags}
+              onClose={this.handleTagsDialogClose}
+              TransitionComponent={TransitionUp}
+          >
+            <AppBar className={classes.appBar} position="sticky"> // this is the header of the dialog
+              <Toolbar>
+                <IconButton color="inherit" onClick={this.handleTagsDialogClose} aria-label="Close">
+                  <CloseIcon/>
+                </IconButton>
+                <Typography variant="h6" color="inherit" className={classes.flex}>
+                  DICOM Tags
+                </Typography>
+              </Toolbar>
+            </AppBar>
+            <TagsTable data={metaData}/>
           </Dialog>
         </Stack>
 
@@ -596,18 +642,33 @@ class DwvComponent extends React.Component {
   componentDidUpdate(prevProps, prevState, snapshot) {
     if (this.drawingsExist()) {
       // console.log(JSON.parse(this.state.dwvApp.getJsonState()));
+      // console.log(this.getJSONState());
       console.log(this.state.class2Id);
       console.log(this.state.drawings);
+      console.log(this.getJSONState());
+      console.log('the new lgo:::::')
+      console.log(this.state.dwvApp.getLayerGroupByDivId("layerGroup0").getActiveDrawLayer().getKonvaLayer().getAbsoluteScale());
+      console.log('...............................')
       }
 
 
       if (prevState.drawings.length < this.state.drawings.length) {
+        console.log('inside added shape in component did update');
+
         let selectedClass = this.state.selectedClass;
         let newShape = this.state.drawings[this.state.drawings.length - 1];
         let newShapeId = newShape.attrs.id;
         let class2Id_prev = this.state.class2Id;
         class2Id_prev[selectedClass].push(newShapeId);
+
+        console.log(newShapeId);
+        // updates text of the label attached to the shape
+        // this.updateShapeLabelText(newShapeId);
+
+
         this.setState({class2Id: class2Id_prev});
+
+
       }
       else if (prevState.drawings.length > this.state.drawings.length) {
         let differId = this.getDifferId(this.state.drawings, prevState.drawings);
@@ -621,8 +682,8 @@ class DwvComponent extends React.Component {
           }
         })
       }
-      console.log(this.state.class2Id);
-      console.log(this.state.drawings);
+      // console.log(this.state.class2Id);
+      // console.log(this.state.drawings);
     }
 
   getJSONState = () => {
@@ -630,6 +691,10 @@ class DwvComponent extends React.Component {
       return JSON.parse(this.state.dwvApp.getJsonState());
     }
     return null;
+  };
+
+  updateJSONState = (JsonState) => { // todo this need validation on the input JsonState
+    this.state.dwvApp.applyJsonState(JSON.stringify(JsonState));
   };
 
   /**
@@ -652,14 +717,321 @@ class DwvComponent extends React.Component {
   };
 
   /**
+   * This method adds a drawing object children to the current state of the dwvApp
+   * @param drawing
+   * @param drawingDetail
+   */
+  setDrawings = (drawing, drawingDetail) => {
+    return this.state.dwvApp.setDrawings(drawing, drawingDetail);
+  };
+
+  /**
+   * pallete of label colors
+   * @type {idx: string}
+   */
+  palette = {
+    0: '#ffff80',
+    1: "#234378",
+    2: "#78235d",
+    3: "#78232a",
+    4: "#307823",
+    5: "#237578",
+    6: "#FF7810"
+  };
+
+  /**
+   * This method makes a rectangle-group object and returns it (By shape object I mean the objects that are in this.state.drawings).
+   * @param label{number}
+   * @param xTopLeft{number}
+   * @param yTopLeft{number}
+   * @param width{number}
+   * @param height{number}
+   * @returns {any}
+   * @constructor
+   */
+  rectShapeObjGen = (xTopLeft, yTopLeft, width, height, label) => {
+
+    let scale = this.state.dwvApp.getLayerGroupByDivId("layerGroup0").getActiveDrawLayer().getKonvaLayer().getAbsoluteScale();
+    let scaleX = 2 / scale.x;
+    let scaleY = 2 / scale.y;
+
+    return {
+      "attrs": {
+        "name": "rectangle-group",
+        "id": crypto.randomUUID().slice(0,8),
+        "draggable": true
+      },
+      "className": "Group",
+      "children": [
+        {
+          "attrs": {
+            "x": xTopLeft,
+            "y": yTopLeft + height,
+            "scaleX": scaleX,
+            "scaleY": scaleY,
+            "name": "label",
+            'visible': false
+          },
+          "className": "Label",
+          "children": [
+            {
+              "attrs": {
+                "fontSize": 10,
+                "fontFamily": "Verdana",
+                "fill": this.palette[label],
+                "padding": 3,
+                "shadowColor": "#000",
+                "shadowOffsetX": 0.25,
+                "shadowOffsetY": 0.25,
+                "name": "text",
+                "text": label
+              },
+              "className": "Text"
+            },
+            {
+              "attrs": {
+                "fill": this.palette[label],
+                "opacity": 0.2,
+                "width": 58.939453125,
+                "height": 16
+              },
+              "className": "Tag"
+            }
+          ]
+        },
+        {
+          "attrs": {
+            "x": xTopLeft,
+            "y": yTopLeft,
+            "width": width,
+            "height": height,
+            "stroke": this.palette[label],
+            "strokeScaleEnabled": false,
+            "name": "shape"
+          },
+          "className": "Rect"
+        }
+      ]
+    };
+  };
+
+
+  /**
+   * This method adds shape Objects(a list of shape Objects) to be as children of position group layer
+   * @param shapeObjs{[]}
+   * @returns {({children: [{children: *[], className: string, attrs: {name: string, id: string}}], className: string, attrs: {}}|{})[]}
+   */
+  drawingObjGen = (shapeObjs) => {
+    let drawingObj = {
+      "attrs": {},
+      "className": "Layer",
+      "children": [
+        {
+          "attrs": {
+            "name": "position-group",
+            "id": "#2-0"
+          },
+          "className": "Group",
+          "children": []
+        }
+      ]
+    };
+
+    shapeObjs.forEach(shape => drawingObj.children[0].children.push(shape));
+
+    let drawingDetailsObj = {};
+
+    shapeObjs.forEach((shape) => {
+      drawingDetailsObj[shape.attrs.id] = {
+        "meta": {
+          "quantification": {},
+          "textExpr": shape.children[0].children[0].attrs.text
+        }
+      };
+    })
+
+    return [drawingObj, drawingDetailsObj];
+  };
+
+  // ____________ Import and Export Section ____________
+  /**
+   * This method Parse the imported text file into a 2D array (a table)
+   * @param annot{string}
+   * @returns {number[][]}
+   */
+  parseAnnot = (annot) => {
+    let rows = annot.split('\n');
+    rows.pop();
+
+    for (let i = 0; i < rows.length; i++ ) {
+      rows[i] = rows[i].replace('\r', '');
+      rows[i] = rows[i].split(" ")
+
+      if (rows[i].length !== 5) {
+        alert(`Annotation Import Error: the row number ${i} should be exactly of length 5`)
+      }
+
+      for (let j = 0; j < rows[i].length; j++) {
+        rows[i][j] = Number(rows[i][j]);
+      }
+
+    }
+    console.log(rows);
+    return rows;
+  };
+
+  /**
+   * This method converts normalized x_center, y_center, width, height to unnormalized.
+   * @param label{number[]}
+   * @returns {[number,number,number,number,number]}
+   */
+  nxywh2xywh = (label) => {
+    let imgWidth = this.getJSONState().position[0] * 2;
+    let imgHeight = this.getJSONState().position[1] * 2;
+
+    let c = label[0];
+    let x = label[1] * imgWidth;
+    let y = label[2] * imgHeight;
+    let w = label[3] * imgWidth;
+    let h = label[4] * imgHeight;
+
+    return [c, x, y ,w, h];
+  };
+
+  /**
+   * This method converts label of format x_center y_center width height to the format x_top_left y_top_left width height
+   * @param label{number[]}
+   * @returns {[number,number,number,number,number]}
+   */
+  xywh2x_ty_twh = (label) => {
+
+    let c = label[0];
+    let w = label[3];
+    let h = label[4];
+    let x = label[1] - parseInt(w / 2);
+    let y = label[2] - parseInt(h / 2);
+    console.log([c, x, y ,w, h]);
+
+    return [c, x, y ,w, h];
+  };
+
+  importAnnot = (annot) => {
+    let annotTable = this.parseAnnot(annot);
+    let shapes = [];
+    for (let i = 0; i < annotTable.length; i++) {
+      let refinedLabel = this.nxywh2xywh(annotTable[i]);
+      refinedLabel = this.xywh2x_ty_twh(refinedLabel);
+      let rectObj = this.rectShapeObjGen(refinedLabel[1], refinedLabel[2], refinedLabel[3], refinedLabel[4], refinedLabel[0]);
+      shapes.push(rectObj);
+    }
+    let [drawings, drawingDetails] = this.drawingObjGen(shapes);
+    this.state.dwvApp.setDrawings(drawings, drawingDetails);
+  };
+
+
+  updateShapeLabelText = () => {
+
+    // let drawings = {
+    //   "attrs": {},
+    //   "className": "Layer",
+    //   "children": [
+    //     {
+    //       "attrs": {
+    //         "name": "position-group",
+    //         "id": "#2-0"
+    //       },
+    //       "className": "Group",
+    //       "children": [
+    //         {
+    //           "attrs": {
+    //             "name": "rectangle-group",
+    //             "id": "z5z5aqzjpyq",
+    //             "draggable": true
+    //           },
+    //           "className": "Group",
+    //           "children": [
+    //             {
+    //               "attrs": {
+    //                 "x": 88.22151898734178,
+    //                 "y": 40.085443037974684,
+    //                 "scaleX": 0.6708860759493671,// calculate this
+    //                 "scaleY": 0.6708860759493671,
+    //                 "name": "label",
+    //                 "visible": false
+    //               },
+    //               "className": "Label",
+    //               "children": [
+    //                 {
+    //                   "attrs": {
+    //                     "fontSize": 10,
+    //                     "fontFamily": "Verdana",
+    //                     "fill": "#ffff80",
+    //                     "padding": 3,
+    //                     "shadowColor": "#000",
+    //                     "shadowOffsetX": 0.25,
+    //                     "shadowOffsetY": 0.25,
+    //                     "name": "text",
+    //                     "text": "Finger 1"
+    //                   },
+    //                   "className": "Text"
+    //                 },
+    //                 {
+    //                   "attrs": {
+    //                     "fill": "#ffff80",
+    //                     "opacity": 0.2,
+    //                     "width": 47.1474609375,
+    //                     "height": 16
+    //                   },
+    //                   "className": "Tag"
+    //                 }
+    //               ]
+    //             },
+    //             {
+    //               "attrs": {
+    //                 "x": 88.22151898734178,
+    //                 "y": 9.895569620253164,
+    //                 "width": 31.196202531645568,
+    //                 "height": 30.18987341772152,
+    //                 "stroke": "#ffff80",
+    //                 "strokeScaleEnabled": false,
+    //                 "name": "shape"
+    //               },
+    //               "className": "Rect"
+    //             }
+    //           ]
+    //         }
+    //       ]
+    //     }
+    //   ]
+    // };
+
+    // Hereeeeeee , adding fetch and debuginggg
+    let rectObj = this.rectShapeObjGen(50, 50, 25, 15);
+    let drawings = this.drawingObjGen(rectObj);
+
+
+
+    let drawingDetails = {};
+    drawingDetails[String(rectObj.attrs.id)] =
+        {
+          "meta": {
+            "textExpr": "HAHAHAHA",
+            "quantification": {}
+          }
+        }
+
+
+    this.state.dwvApp.setDrawings(drawings, drawingDetails);
+  };
+
+  /**
    * This method updates the drawing state.
    * @param event
    */
   updateDrawings = (event) => {
     // updating the state, when you delete a shape using delete button
-    if (this.state.dwvApp && this.state.selectedTool === "Draw" && event.key === 'Delete') { // problem in updating the drawing state.
+    if (this.state.dwvApp && this.state.selectedTool === "Draw" && event.key === 'Delete') {
       this.setState({drawings: this.getDrawings()});
-      console.log('delete is pressed');
     }
     // updating the state when you add a shape or delete a shape or change a shape
     else if (this.state.dwvApp && this.state.selectedTool === "Draw") {
@@ -669,22 +1041,21 @@ class DwvComponent extends React.Component {
 
   /**
    * This method gives you the shape object (if exists) based on the input shapeId
-   * @param ShapeId
-   * @returns {-1} if it is not found | null if operation is not valid | shape object belonging to the shape-group
+   * @returns {-1} if it is not found | null if operation is not valid | {shape} belonging to the shape-group
+   * @param shapeId
    */
 
-  getShapeAttrs = (shapeId) => {
+  getShapeObject = (shapeId) => {
     if (this.drawingsExist()){
       let shapes = this.state.drawings;
       for (let i = 0; i < shapes.length; i++) {
         let shape = shapes[i];
         if (shape.attrs.id === shapeId) {
-          return shape.children[1];
+          return shape;
         }
       }
       return -1;
     }
-    return null
   };
 
   /**
@@ -703,7 +1074,10 @@ class DwvComponent extends React.Component {
   };
 
 
-
+  /**
+   * This method checks if the there is an active layer group for the app.
+   * @returns {boolean}
+   */
   drawingsExist = () => {
     return this.state.dwvApp !== null && this.state.dwvApp.getActiveLayerGroup() !== undefined && this.getJSONState().drawings.children.length > 0;
   };
