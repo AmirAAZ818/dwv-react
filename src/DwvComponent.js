@@ -115,9 +115,10 @@ class DwvComponent extends React.Component {
         'Injured Right Foot': []
       },
       selectedClass: "",
-      drawings: []
+      drawings: [],
+      isAnnotImported: false
     };
-  }waw
+  }
 
   render() {
     const { classes } = this.props;
@@ -146,6 +147,7 @@ class DwvComponent extends React.Component {
         };
 
         reader.readAsText(file);
+        this.setState({isAnnotImported: true});
       }
     };
 
@@ -649,26 +651,46 @@ class DwvComponent extends React.Component {
       console.log('the new lgo:::::')
       console.log(this.state.dwvApp.getLayerGroupByDivId("layerGroup0").getActiveDrawLayer().getKonvaLayer().getAbsoluteScale());
       console.log('...............................')
+      console.log("annot import state");
+      console.log(this.state.isAnnotImported)
       }
 
 
       if (prevState.drawings.length < this.state.drawings.length) {
-        console.log('inside added shape in component did update');
-
-        let selectedClass = this.state.selectedClass;
-        let newShape = this.state.drawings[this.state.drawings.length - 1];
-        let newShapeId = newShape.attrs.id;
-        let class2Id_prev = this.state.class2Id;
-        class2Id_prev[selectedClass].push(newShapeId);
-
-        console.log(newShapeId);
-        // updates text of the label attached to the shape
-        // this.updateShapeLabelText(newShapeId);
+        if (!this.state.isAnnotImported) {
+          console.log('inside added shape in component did update');
 
 
-        this.setState({class2Id: class2Id_prev});
+
+          let selectedClass = this.state.selectedClass;
+          let newShape = this.state.drawings[this.state.drawings.length - 1];
+          let newShapeId = newShape.attrs.id;
+          let class2Id_prev = this.state.class2Id;
+          class2Id_prev[selectedClass].push(newShapeId);
+
+          console.log(newShapeId);
+          // updates text of the label attached to the shape
+          // this.updateShapeLabelText(newShapeId);
 
 
+          this.setState({class2Id: class2Id_prev});
+        }
+        else {
+
+          console.log(this.state.drawings);
+          let diffNumShapes = this.state.drawings.length - prevState.drawings.length;
+          let importedShapes = this.state.drawings.slice(prevState.drawings.length, this.state.drawings.length)
+          let class2Id_prev = this.state.class2Id;
+
+          importedShapes.forEach((shape) => {
+            let sId = shape.attrs.id;
+            let selectedClass = shape.children[0].children[0].attrs.text
+            class2Id_prev[selectedClass].push(sId);
+          });
+
+          this.setState({class2Id: class2Id_prev});
+          this.setState({isAnnotImported: false});
+        }
       }
       else if (prevState.drawings.length > this.state.drawings.length) {
         let differId = this.getDifferId(this.state.drawings, prevState.drawings);
@@ -730,13 +752,18 @@ class DwvComponent extends React.Component {
    * @type {idx: string}
    */
   palette = {
-    0: '#ffff80',
-    1: "#234378",
-    2: "#78235d",
-    3: "#78232a",
-    4: "#307823",
-    5: "#237578",
-    6: "#FF7810"
+    'Palm': '#ffff80',
+    'Finger 1': "#234378",
+    'Finger 2': "#78235d",
+    'Finger 3': "#78232a",
+    'Finger 4': "#307823",
+    'Finger 5': "#237578",
+    'Left Hand': "#FF7810",
+    'Right Hand': "#9d96ee",
+    'Left Foot': "#675b09",
+    'Right Foot': "#ff1050",
+    'Injured Left Foot': "#10ff54",
+    'Injured Right Foot': "#52313e"
   };
 
   /**
@@ -750,6 +777,7 @@ class DwvComponent extends React.Component {
    * @constructor
    */
   rectShapeObjGen = (xTopLeft, yTopLeft, width, height, label) => {
+    label = Object.keys(this.state.class2Id)[label]
 
     let scale = this.state.dwvApp.getLayerGroupByDivId("layerGroup0").getActiveDrawLayer().getKonvaLayer().getAbsoluteScale();
     let scaleX = 2 / scale.x;
