@@ -35,6 +35,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import AdsClickIcon from '@mui/icons-material/AdsClick';
 import ModeEditOutlineIcon from '@mui/icons-material/ModeEditOutline';
 import ArrowDownwardOutlinedIcon from '@mui/icons-material/ArrowDownwardOutlined';
+import SaveOutlinedIcon from '@mui/icons-material/SaveOutlined';
 
 import Dialog from '@mui/material/Dialog';
 import AppBar from '@mui/material/AppBar';
@@ -45,6 +46,7 @@ import TagsTable from './TagsTable';
 
 import './DwvComponent.css';
 import {App, decoderScripts, getDwvVersion} from 'dwv';
+import {private_excludeVariablesFromRoot} from "@mui/material";
 
 // Konva for making rect when importing labels
 // Image decoders (for web workers)
@@ -212,9 +214,13 @@ class DwvComponent extends React.Component {
           >
             <Button
                 onClick={() => {document.getElementById("importAnnot").click();}}
-
             >
               <ArrowDownwardOutlinedIcon/>
+            </Button>
+            <Button
+                onClick={() => {this.updateDrawings();}}
+            >
+              <SaveOutlinedIcon/>
             </Button>
 
           </ButtonGroup>
@@ -247,7 +253,7 @@ class DwvComponent extends React.Component {
                         value="Test"
                         title="Test"
                         disabled={!dataLoaded}
-                        onChange={this.importAnnot}
+                        onChange={this.debug}
           ><BugReportOutlinedIcon/></ToggleButton>
 
           <ToggleButton size="small"
@@ -483,12 +489,6 @@ class DwvComponent extends React.Component {
     app.addEventListener('keydown', (event) => {
       app.defaultOnKeydown(event);
     });
-
-    // handle mouseup event for shape
-    window.addEventListener('mouseup', this.updateDrawings);
-
-    // handle delete event for shape
-    app.addEventListener('keydown',this.updateDrawings);
 
     // handle window resize
     window.addEventListener('resize', app.onResize);
@@ -748,7 +748,7 @@ class DwvComponent extends React.Component {
   };
 
   /**
-   * pallete of label colors
+   * palette of label colors
    * @type {idx: string}
    */
   palette = {
@@ -954,6 +954,12 @@ class DwvComponent extends React.Component {
     }
     let [drawings, drawingDetails] = this.drawingObjGen(shapes);
     this.state.dwvApp.setDrawings(drawings, drawingDetails);
+    this.updateDrawings();
+  };
+
+  // debugging method
+  debug = () => {
+    this.updateDrawings();
   };
 
 
@@ -1033,7 +1039,6 @@ class DwvComponent extends React.Component {
     //   ]
     // };
 
-    // Hereeeeeee , adding fetch and debuginggg
     let rectObj = this.rectShapeObjGen(50, 50, 25, 15);
     let drawings = this.drawingObjGen(rectObj);
 
@@ -1054,15 +1059,10 @@ class DwvComponent extends React.Component {
 
   /**
    * This method updates the drawing state.
-   * @param event
    */
-  updateDrawings = (event) => {
-    // updating the state, when you delete a shape using delete button
-    if (this.state.dwvApp && this.state.selectedTool === "Draw" && event.key === 'Delete') {
-      this.setState({drawings: this.getDrawings()});
-    }
+  updateDrawings = () => {
     // updating the state when you add a shape or delete a shape or change a shape
-    else if (this.state.dwvApp && this.state.selectedTool === "Draw") {
+    if (this.state.dwvApp && this.state.selectedTool === "Draw") {
       this.setState({drawings: this.getDrawings()});
     }
   };
