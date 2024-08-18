@@ -668,23 +668,29 @@ class DwvComponent extends React.Component {
           let class2Id_prev = this.state.class2Id;
           class2Id_prev[selectedClass].push(newShapeId);
 
-          console.log(newShapeId);
+
+          let labelRefinedDrawings = this.state.drawings;
+          labelRefinedDrawings[this.state.drawings.length - 1].children[0].children[0].attrs.text = Object.keys(class2Id_prev).indexOf(selectedClass);
+
+
+
           // updates text of the label attached to the shape
           // this.updateShapeLabelText(newShapeId);
 
 
-          this.setState({class2Id: class2Id_prev});
+          this.setState({class2Id: class2Id_prev, drawings:labelRefinedDrawings});
         }
         else {
-
           console.log(this.state.drawings);
-          let diffNumShapes = this.state.drawings.length - prevState.drawings.length;
           let importedShapes = this.state.drawings.slice(prevState.drawings.length, this.state.drawings.length)
           let class2Id_prev = this.state.class2Id;
 
+
+
+
           importedShapes.forEach((shape) => {
             let sId = shape.attrs.id;
-            let selectedClass = shape.children[0].children[0].attrs.text
+            let selectedClass = Object.keys(class2Id_prev)[shape.children[0].children[0].attrs.text];
             class2Id_prev[selectedClass].push(sId);
           });
 
@@ -751,19 +757,33 @@ class DwvComponent extends React.Component {
    * palette of label colors
    * @type {idx: string}
    */
+  // palette = {
+  //   'Palm': '#ffff80',
+  //   'Finger 1': "#234378",
+  //   'Finger 2': "#78235d",
+  //   'Finger 3': "#78232a",
+  //   'Finger 4': "#307823",
+  //   'Finger 5': "#237578",
+  //   'Left Hand': "#FF7810",
+  //   'Right Hand': "#9d96ee",
+  //   'Left Foot': "#675b09",
+  //   'Right Foot': "#ff1050",
+  //   'Injured Left Foot': "#10ff54",
+  //   'Injured Right Foot': "#52313e"
+  // };
   palette = {
-    'Palm': '#ffff80',
-    'Finger 1': "#234378",
-    'Finger 2': "#78235d",
-    'Finger 3': "#78232a",
-    'Finger 4': "#307823",
-    'Finger 5': "#237578",
-    'Left Hand': "#FF7810",
-    'Right Hand': "#9d96ee",
-    'Left Foot': "#675b09",
-    'Right Foot': "#ff1050",
-    'Injured Left Foot': "#10ff54",
-    'Injured Right Foot': "#52313e"
+    '0': '#ffff80',
+    '1': "#234378",
+    '2': "#78235d",
+    '3': "#78232a",
+    '4': "#307823",
+    '5': "#237578",
+    '6': "#FF7810",
+    '7': "#9d96ee",
+    '8': "#675b09",
+    '9': "#ff1050",
+    '10': "#10ff54",
+    '11': "#52313e"
   };
 
   /**
@@ -777,7 +797,7 @@ class DwvComponent extends React.Component {
    * @constructor
    */
   rectShapeObjGen = (xTopLeft, yTopLeft, width, height, label) => {
-    label = Object.keys(this.state.class2Id)[label]
+    // label = Object.keys(this.state.class2Id)[label]; // we keep the index of the label, not the text of it.
 
     let scale = this.state.dwvApp.getLayerGroupByDivId("layerGroup0").getActiveDrawLayer().getKonvaLayer().getAbsoluteScale();
     let scaleX = 2 / scale.x;
@@ -943,6 +963,45 @@ class DwvComponent extends React.Component {
     return [c, x, y ,w, h];
   };
 
+  /**
+   * This method converts the x_top y_top width height to x_center y_center width height
+   * @param label{number[]}
+   * @returns {[number,number,number,number,number]}
+   */
+  x_ty_twh2xywh = (label) => {
+    let c = label[0];
+
+    let w = label[3];
+    let h = label[4];
+    let x = label[1] + parseInt(w / 2);
+    let y = label[2] + parseInt(h / 2);
+
+    return [c, x, y ,w, h];
+  };
+
+
+  /**
+   * This method converts pixel x_center y_center width height format to normalized x_center y_center width height.
+   * @param label{number[]}
+   * @returns {[number,number,number,number,number]}
+   */
+  xywh2nxywh = (label) => {
+    let imgWidth = this.getJSONState().position[0] * 2;
+    let imgHeight = this.getJSONState().position[1] * 2;
+
+    let c = label[0];
+    let x = label[1] / imgWidth;
+    let y = label[2] / imgHeight;
+    let w = label[3] / imgWidth;
+    let h = label[4] / imgHeight;
+
+    return [c, x, y ,w, h];
+  };
+
+  /**
+   * This method imports the annotation of an image to the app.
+   * @param annot{string}
+   */
   importAnnot = (annot) => {
     let annotTable = this.parseAnnot(annot);
     let shapes = [];
@@ -957,112 +1016,65 @@ class DwvComponent extends React.Component {
     this.updateDrawings();
   };
 
-  // debugging method
-  debug = () => {
-    this.updateDrawings();
-  };
+  exportAnnot = () => {
+    if (this.state.drawings.length > 0) {
+      let labelText = "";
+      for (const drawing of this.state.drawings) {
+        console.log(drawing);
+        const c = drawing.children[0].children[0].attrs.text;
 
-
-  updateShapeLabelText = () => {
-
-    // let drawings = {
-    //   "attrs": {},
-    //   "className": "Layer",
-    //   "children": [
-    //     {
-    //       "attrs": {
-    //         "name": "position-group",
-    //         "id": "#2-0"
-    //       },
-    //       "className": "Group",
-    //       "children": [
-    //         {
-    //           "attrs": {
-    //             "name": "rectangle-group",
-    //             "id": "z5z5aqzjpyq",
-    //             "draggable": true
-    //           },
-    //           "className": "Group",
-    //           "children": [
-    //             {
-    //               "attrs": {
-    //                 "x": 88.22151898734178,
-    //                 "y": 40.085443037974684,
-    //                 "scaleX": 0.6708860759493671,// calculate this
-    //                 "scaleY": 0.6708860759493671,
-    //                 "name": "label",
-    //                 "visible": false
-    //               },
-    //               "className": "Label",
-    //               "children": [
-    //                 {
-    //                   "attrs": {
-    //                     "fontSize": 10,
-    //                     "fontFamily": "Verdana",
-    //                     "fill": "#ffff80",
-    //                     "padding": 3,
-    //                     "shadowColor": "#000",
-    //                     "shadowOffsetX": 0.25,
-    //                     "shadowOffsetY": 0.25,
-    //                     "name": "text",
-    //                     "text": "Finger 1"
-    //                   },
-    //                   "className": "Text"
-    //                 },
-    //                 {
-    //                   "attrs": {
-    //                     "fill": "#ffff80",
-    //                     "opacity": 0.2,
-    //                     "width": 47.1474609375,
-    //                     "height": 16
-    //                   },
-    //                   "className": "Tag"
-    //                 }
-    //               ]
-    //             },
-    //             {
-    //               "attrs": {
-    //                 "x": 88.22151898734178,
-    //                 "y": 9.895569620253164,
-    //                 "width": 31.196202531645568,
-    //                 "height": 30.18987341772152,
-    //                 "stroke": "#ffff80",
-    //                 "strokeScaleEnabled": false,
-    //                 "name": "shape"
-    //               },
-    //               "className": "Rect"
-    //             }
-    //           ]
-    //         }
-    //       ]
-    //     }
-    //   ]
-    // };
-
-    let rectObj = this.rectShapeObjGen(50, 50, 25, 15);
-    let drawings = this.drawingObjGen(rectObj);
-
-
-
-    let drawingDetails = {};
-    drawingDetails[String(rectObj.attrs.id)] =
-        {
-          "meta": {
-            "textExpr": "HAHAHAHA",
-            "quantification": {}
+        // init of cords
+        let w = 0;
+        let h = 0;
+        let x_t = 0;
+        let y_t = 0;
+        const rectAttrs = Object.entries(drawing.children[1].attrs);
+        for (const rectAttr of rectAttrs) {
+          if (rectAttr[0] === "x") {
+            x_t = rectAttr[1];
+          }
+          else if (rectAttr[0] === "y"){
+            y_t = rectAttr[1];
+          }
+          else if (rectAttr[0] === "width") {
+            w = rectAttr[1];
+          }
+          else if (rectAttr[0] === "height") {
+            h = rectAttr[1];
           }
         }
+        console.log(x_t)
+        console.log(y_t)
+        console.log(w)
+        console.log(h)
+        console.log(c)
 
+        labelText += `${c} ${x_t} ${y_t} ${w} ${h}\n`;
+      }
+      console.log(labelText);
+    }
 
-    this.state.dwvApp.setDrawings(drawings, drawingDetails);
   };
+
+  // debugging method
+  debug = () => {
+    console.log("Debug Button Was Hit");
+    console.log("///////////////////////");
+
+    this.exportAnnot()
+
+    console.log("///////////////////////");
+  };
+
+
+
 
   /**
    * This method updates the drawing state.
    */
   updateDrawings = () => {
     // updating the state when you add a shape or delete a shape or change a shape
-    if (this.state.dwvApp && this.state.selectedTool === "Draw") {
+    if (this.state.dwvApp) {
       this.setState({drawings: this.getDrawings()});
     }
   };
